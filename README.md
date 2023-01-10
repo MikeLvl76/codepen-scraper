@@ -11,4 +11,16 @@ Python version of web scraper previously made using Node and [cheerio](https://c
 
 A list of each pen informations is returned.
 
+Command for running code :
+
+- On Windows : 
+    ```bash
+    python -u codepen.py <codepen_username>
+    ```
+
+- On Linux :
+    ```bash
+    python3 -u codepen.py <codepen_username>
+    ```
+
 Try for yourself !
