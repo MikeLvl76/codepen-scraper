@@ -2,8 +2,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import sys, json
 from time import sleep
 
@@ -13,6 +11,11 @@ def check_args() -> None:
 
 def init():
     options = webdriver.ChromeOptions()
+    options.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"])
+    options.add_argument('--log-level=1')
+    options.add_argument("--headless")
+    options.add_argument('--disable-gpu')
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.5359.125 Safari/537.36")
     service = Service(ChromeDriverManager().install())
     return webdriver.Chrome(service=service, options=options)
 
@@ -23,8 +26,9 @@ def format_string_number(x: str):
 
 def fetch_user_pens(driver, user: str):
     driver.get(f'https://codepen.io/{user}/pens/public?grid_type=list')
+    print(driver.title)
+    #driver.minimize_window()
     sleep(3)
-    driver.minimize_window()
     page = driver.find_element(By.ID, 'react-page')
     wrapper = page.find_element(By.CLASS_NAME, 'width-wrapper')
     
@@ -41,8 +45,8 @@ def fetch_user_pens(driver, user: str):
     pens = [{
         "title": title,
         "updated on": update,
-        "love": love,
-        "view": view,
+        "loves": love,
+        "views": view,
     } for title, update, love, view in zip(titles, updates, loves, views)]
 
     res = {
