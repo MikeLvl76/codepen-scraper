@@ -11,16 +11,18 @@ Python version of web scraper previously made using Node and [cheerio](https://c
 
 A list of each pen informations is returned.
 
+## How to run
+
 Command for running code :
 
 - On Windows : 
     ```bash
-    python -u codepen.py <codepen_username>
+    python -u codepen.py --user=<codepen_username> --page_count=<positive integer or "all">
     ```
 
 - On Linux :
     ```bash
-    python3 -u codepen.py <codepen_username>
+    python3 -u codepen.py --user=<codepen_username> --page_count=<positive integer or "all">
     ```
 
 Try for yourself !

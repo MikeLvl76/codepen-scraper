@@ -2,7 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import argparse
@@ -19,9 +19,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '-usr', '--user', help='Enter CodePen username', type=str, required=True)
     parser.add_argument(
-        '-pc', '--page_count', help='Enter the count of desired pages', type=int or str, default=1, required=False)
-    parser.add_argument(
-        '-all', '--all_pages', help="Get all pages", type=bool, default=False, required=False)
+        '-pc', '--page_count', help='Enter the count of desired pages', type=str, default=1, required=False)
 
     return parser.parse_args()
 
@@ -30,11 +28,14 @@ def check_args(args: argparse.Namespace) -> None:
     '''
         Check if args are correct when used
     '''
-    if args.user is None:
+    if args.user == '':
         raise argparse.ArgumentError(message='you must provide username !')
 
-    if not isinstance(args.page_count, int or str) or args.page_count <= 1:
+    if not args.page_count.isnumeric() and args.page_count != 'all':
         raise argparse.ArgumentTypeError('positive integer expected or "all" expected !')
+
+    if args.page_count != 'all' and int(args.page_count) < 1:
+        raise argparse.ArgumentTypeError('positive integer expected !')
 
 def init():
     options = webdriver.ChromeOptions()
@@ -83,28 +84,27 @@ def fetch_pens_on_many_pages(driver, page, page_count: int or str = 1) -> list[a
     '''
     pens_page = []
     if page_count != 'all':
-        for i in range(page_count):
+        for i in range(int(page_count)):
             try:
                 sleep(2)
                 pens_page.append((fetch_user_pens(page), i + 1, driver.current_url))
                 WebDriverWait(driver, 3).until(EC.element_to_be_clickable(page.find_element(By.CSS_SELECTOR, 'button[data-direction="next"]'))).click()
                 sleep(2)
-            except TimeoutException:
+            except NoSuchElementException:
                 break
         return pens_page
 
     if page_count == 'all':
-        exists = True
         index = 0
-        while exists:
+        while True:
             try:
                 sleep(2)
                 index += 1
                 pens_page.append((fetch_user_pens(page), index, driver.current_url))
                 WebDriverWait(driver, 3).until(EC.element_to_be_clickable(page.find_element(By.CSS_SELECTOR, 'button[data-direction="next"]'))).click()
                 sleep(2)
-            except TimeoutException:
-                exists = False
+            except NoSuchElementException:
+                break
         return pens_page
 
     return []
