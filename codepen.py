@@ -19,11 +19,6 @@ def init():
     service = Service(ChromeDriverManager().install())
     return webdriver.Chrome(service=service, options=options)
 
-def format_string_number(x: str):
-    if not x.isnumeric:
-        return 0
-    return int(x)
-
 def fetch_user_pens(driver, user: str):
     driver.get(f'https://codepen.io/{user}/pens/public?grid_type=list')
     print(driver.title)
@@ -32,25 +27,28 @@ def fetch_user_pens(driver, user: str):
     page = driver.find_element(By.ID, 'react-page')
     wrapper = page.find_element(By.CLASS_NAME, 'width-wrapper')
     
-    titles = [elt for elt in map(lambda x: x.text, wrapper.find_elements(By.CLASS_NAME, 'title'))]
-    updates = [elt for elt in map(lambda x: x.text, wrapper.find_elements(By.CSS_SELECTOR, "td[class='date updated']"))]
-    loves, views = [], []
+    titles = [elt.text for elt in wrapper.find_elements(By.CLASS_NAME, 'title')]
+    updates = [elt.text for elt in wrapper.find_elements(By.CSS_SELECTOR, "td[class='date updated']")]
+    loves, coms, views = [], [], []
 
     stats = wrapper.find_elements(By.CLASS_NAME, 'list-stats')
     for stat in stats:
         divs = stat.find_elements(By.TAG_NAME, 'div')
-        loves.append(format_string_number(divs[0].text))
-        views.append(format_string_number(divs[2].text))
+        loves.append(int(divs[0].text.encode('ascii', 'ignore').decode('ascii')))
+        coms.append(int(divs[1].text.encode('ascii', 'ignore').decode('ascii')))
+        views.append(int(divs[2].text.encode('ascii', 'ignore').decode('ascii')))
 
     pens = [{
         "title": title,
         "updated on": update,
         "loves": love,
+        "comments": com,
         "views": view,
-    } for title, update, love, view in zip(titles, updates, loves, views)]
+    } for title, update, love, com, view in zip(titles, updates, loves, coms, views)]
 
     res = {
         "user": user,
+        "url": driver.current_url,
         "pens": pens,
     }
 
