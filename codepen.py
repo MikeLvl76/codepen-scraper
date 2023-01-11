@@ -2,12 +2,39 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
-import sys, json
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import argparse
+import json
 from time import sleep
 
-def check_args() -> None:
-    if len(sys.argv) == 1:
-        raise ValueError('additional args must be provided !')
+def parse_args() -> argparse.Namespace:
+    '''
+        Parse command prompt arguments
+    '''
+    parser = argparse.ArgumentParser(description="Arguments and their features",
+                                         usage='%(prog)s [-h] [-usr USER] [-pn PAGE_NUMBER] [-all ALL_PAGES]',
+                                         epilog="Use -h or --help to see more about arguments")
+    parser.add_argument(
+        '-usr', '--user', help='Enter CodePen username', type=str, required=True)
+    parser.add_argument(
+        '-pc', '--page_count', help='Enter the count of desired pages', type=int or str, default=1, required=False)
+    parser.add_argument(
+        '-all', '--all_pages', help="Get all pages", type=bool, default=False, required=False)
+
+    return parser.parse_args()
+
+
+def check_args(args: argparse.Namespace) -> None:
+    '''
+        Check if args are correct when used
+    '''
+    if args.user is None:
+        raise argparse.ArgumentError(message='you must provide username !')
+
+    if not isinstance(args.page_count, int or str) or args.page_count <= 1:
+        raise argparse.ArgumentTypeError('positive integer expected or "all" expected !')
 
 def init():
     options = webdriver.ChromeOptions()
@@ -19,46 +46,85 @@ def init():
     service = Service(ChromeDriverManager().install())
     return webdriver.Chrome(service=service, options=options)
 
-def format_string_number(x: str):
-    if not x.isnumeric:
-        return 0
-    return int(x)
-
-def fetch_user_pens(driver, user: str):
+def fetch_user_page(driver, user: str):
+    '''
+        Fetch user page main div
+    '''
     driver.get(f'https://codepen.io/{user}/pens/public?grid_type=list')
-    print(driver.title)
-    #driver.minimize_window()
-    sleep(3)
-    page = driver.find_element(By.ID, 'react-page')
-    wrapper = page.find_element(By.CLASS_NAME, 'width-wrapper')
-    
-    titles = [elt for elt in map(lambda x: x.text, wrapper.find_elements(By.CLASS_NAME, 'title'))]
-    updates = [elt for elt in map(lambda x: x.text, wrapper.find_elements(By.CSS_SELECTOR, "td[class='date updated']"))]
-    loves, views = [], []
+    sleep(2)
+    return driver.find_element(By.ID, 'react-page')
 
-    stats = wrapper.find_elements(By.CLASS_NAME, 'list-stats')
+def fetch_user_pens(page) -> list[any]:
+    '''
+        Get all user pens on a page
+    '''
+    titles = [elt.text for elt in page.find_elements(By.CSS_SELECTOR, 'th[class="title"]')]
+    updates = [elt.text for elt in page.find_elements(By.CSS_SELECTOR, "td[class='date updated']")]
+    loves, coms, views = [], [], []
+
+    stats = page.find_elements(By.CLASS_NAME, 'list-stats')
     for stat in stats:
         divs = stat.find_elements(By.TAG_NAME, 'div')
-        loves.append(format_string_number(divs[0].text))
-        views.append(format_string_number(divs[2].text))
+        loves.append(int(divs[0].text.encode('ascii', 'ignore').decode('ascii')))
+        coms.append(int(divs[1].text.encode('ascii', 'ignore').decode('ascii')))
+        views.append(int(divs[2].text.encode('ascii', 'ignore').decode('ascii')))
 
-    pens = [{
+    return [{
         "title": title,
         "updated on": update,
         "loves": love,
+        "comments": com,
         "views": view,
-    } for title, update, love, view in zip(titles, updates, loves, views)]
+    } for title, update, love, com, view in zip(titles, updates, loves, coms, views)]
+
+def fetch_pens_on_many_pages(driver, page, page_count: int or str = 1) -> list[any]:
+    '''
+        Go to the next pages for retrieving pens
+    '''
+    pens_page = []
+    if page_count != 'all':
+        for i in range(page_count):
+            try:
+                sleep(2)
+                pens_page.append((fetch_user_pens(page), i + 1, driver.current_url))
+                WebDriverWait(driver, 3).until(EC.element_to_be_clickable(page.find_element(By.CSS_SELECTOR, 'button[data-direction="next"]'))).click()
+                sleep(2)
+            except TimeoutException:
+                break
+        return pens_page
+
+    if page_count == 'all':
+        exists = True
+        index = 0
+        while exists:
+            try:
+                sleep(2)
+                index += 1
+                pens_page.append((fetch_user_pens(page), index, driver.current_url))
+                WebDriverWait(driver, 3).until(EC.element_to_be_clickable(page.find_element(By.CSS_SELECTOR, 'button[data-direction="next"]'))).click()
+                sleep(2)
+            except TimeoutException:
+                exists = False
+        return pens_page
+
+    return []
+
+def save_results(**kwargs) -> any:
 
     res = {
-        "user": user,
-        "pens": pens,
+        "user": kwargs['user'],
+        "pens": kwargs['pens'],
     }
-
-    driver.quit()
 
     return json.dumps(res, indent=4)
 
 if __name__ == '__main__':
-    check_args()
+    args = parse_args()
+    check_args(args)
     driver = init()
-    print(fetch_user_pens(driver, sys.argv[1]))
+    page = fetch_user_page(driver, args.user) # get main div of user page
+    pens = fetch_pens_on_many_pages(driver, page, args.page_count) # get pens on many pages
+
+    user_pens = [{'url': pen[2], f'Page {pen[1]}': pen[0]} for pen in pens]
+    print(save_results(user=args.user, pens=user_pens))
+    driver.close()
