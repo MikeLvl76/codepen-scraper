@@ -11,6 +11,7 @@ from json import dumps
 from time import sleep
 from os import path, getcwd, mkdir, sep
 from re import match
+import pandas as pd
 
 def parse_args() -> Namespace:
     '''
@@ -82,7 +83,7 @@ def fetch_user_pens(page: WebElement) -> list[any]:
 
     return [{
         "title": title,
-        "updated on": update,
+        "updated at": update,
         "loves": love,
         "comments": com,
         "views": view,
@@ -138,10 +139,33 @@ def save_results(output: str, user: str, pens: list[any]) -> None:
 
         return None
 
-    if extension == 'csv':
-        return None
+    if extension in ['csv', 'tsv']:
 
-    if extension == 'tsv':
+        items = [pen[list(pen.keys())[-1]] for pen in pens]
+        flatten = [elt for item in items for elt in item]
+        titles, dates, loves, comments, views = [], [], [], [], []
+
+        for value in flatten:
+            titles.append(value['title'])
+            dates.append(value['updated at'])
+            loves.append(value['loves'])
+            comments.append(value['comments'])
+            views.append(value['comments'])
+
+        res = {
+            'Title': titles,
+            'Date of update': dates,
+            'Loves': loves,
+            'Comments': comments,
+            'Views': views,
+        }
+
+        df = pd.DataFrame(res)
+        separator = ','
+        if extension == 'tsv':
+            separator = '\t'
+
+        df.to_csv(f'{dir_path}{sep}{output}_{user}', sep=separator)
         return None
 
     if extension == 'txt':
