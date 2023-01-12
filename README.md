@@ -33,6 +33,6 @@ python -u codepen.py --user=username --page_count=2 --output=file_output.json
 python3 -u codepen.py --user=username --page_count=2 --output=file_output.json
 ```
 
-This is just an example, it may not work and serve as example and model.
+This is just an example, it might not work and serve as example and model.
 
 Try for yourself !
