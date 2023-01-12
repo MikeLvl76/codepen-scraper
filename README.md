@@ -23,6 +23,8 @@ A list of each pen informations is returned.
 
 ## Example
 
+Try for yourself !
+
 ```bash
 # On Windows
 python -u codepen.py --user=username --page_count=2 --output=file_output.json
@@ -35,4 +37,4 @@ python3 -u codepen.py --user=username --page_count=2 --output=file_output.json
 
 This is just an example, it might not work and serve as example and model.
 
-Try for yourself !
+Don't forget to use `-h` or `--help` to have an explanation for each argument !

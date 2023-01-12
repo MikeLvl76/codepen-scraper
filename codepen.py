@@ -12,6 +12,8 @@ from time import sleep
 from os import path, getcwd, mkdir, sep
 from re import match
 import pandas as pd
+import random
+import string
 
 def parse_args() -> Namespace:
     '''
@@ -28,6 +30,9 @@ def parse_args() -> Namespace:
 
     parser.add_argument(
         '-o', '--output', help='Save result in file (json, csv/tsv or txt)', type=str, required=False)
+
+    parser.add_argument(
+        '-g', '--gather', help='Put output files into directory, only applied with txt files', action='store_true', required=False)
 
     return parser.parse_args()
 
@@ -103,7 +108,8 @@ def fetch_pens_on_many_pages(driver: Chrome, page: WebElement, page_count: str =
                 sleep(2)
             except NoSuchElementException:
                 break
-        return pens_page
+        
+        return [{'url': pen[2], f'Page {pen[1]}': pen[0]} for pen in pens_page]
 
     if page_count == 'all':
         index = 0
@@ -116,11 +122,12 @@ def fetch_pens_on_many_pages(driver: Chrome, page: WebElement, page_count: str =
                 sleep(2)
             except NoSuchElementException:
                 break
-        return pens_page
+
+        return [{'url': pen[2], f'Page {pen[1]}': pen[0]} for pen in pens_page]
 
     return []
 
-def save_results(output: str, user: str, pens: list[any]) -> None:
+def save_results(output: str, gather: bool, user: str, pens: list[any]) -> None:
 
     dir_path = f'{getcwd()}{sep}results'
 
@@ -169,12 +176,34 @@ def save_results(output: str, user: str, pens: list[any]) -> None:
         return None
 
     if extension == 'txt':
+
+        randomly_named_dir = f'{dir_path}{sep}txt_output_dir'
+        
+        if gather:
+            # checking if dir already exists
+            if path.exists(randomly_named_dir):
+                # prevent duplicated name
+                random_name = ''
+                while path.exists(randomly_named_dir + random_name):
+                    random_name = "".join(random.choices(string.ascii_letters + string.digits, k=5))
+
+                randomly_named_dir += f'_{random_name}'
+
+            # create the new dir
+            mkdir(randomly_named_dir)
         
         for pen in pens:
+
             page = list(pen.keys())[-1].lower().replace(' ', '_')
             items = pen[list(pen.keys())[-1]]
-            file = open(f'{dir_path}{sep}{user}_{page}_{output}', 'w', encoding='utf-8')
-            file.write(f'{"=" * 20} Pens of {user} {"=" * 20}\n')
+            filepath = f'{dir_path}{sep}{user}_{page}_{output}'
+
+            if gather:
+                filepath = f'{randomly_named_dir}{sep}{user}_{page}_{output}'
+
+            file = open(filepath, 'w', encoding='utf-8')
+            file.write(f'{"=" * 20} Pens of {user} (Page {page.split("_")[1]}) {"=" * 20}\n\n')
+
             for item in items:
                 title = item['title']
                 date = item['updated at']
@@ -183,6 +212,8 @@ def save_results(output: str, user: str, pens: list[any]) -> None:
                 view = item['views']
 
                 file.write(f'{"=" * 20} Pen n°{items.index(item) + 1} {"=" * 20}\nTitle : {title}\n\tUpdated at : {date}\n\tNumber of loves approbation : {love}\n\tNumber of comments : {comment}\n\tNumber of views : {view}\n\n')
+            
+            file.write(f'{"=" * 20} End of page {"=" * 20}')
             file.close()
 
         return None
@@ -198,9 +229,9 @@ if __name__ == '__main__':
     args = parse_args()
     check_args(args)
     driver = init()
+
     page = fetch_user_page(driver, args.user) # get main div of user page
     pens = fetch_pens_on_many_pages(driver, page, args.page_count) # get pens on many pages
+    save_results(output=args.output, gather=args.gather, user=args.user, pens=pens)
 
-    user_pens = [{'url': pen[2], f'Page {pen[1]}': pen[0]} for pen in pens]
-    save_results(output=args.output, user=args.user, pens=user_pens)
     driver.close()
