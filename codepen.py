@@ -69,9 +69,12 @@ def fetch_user_page(driver: Chrome, user: str) -> WebElement:
     '''
     driver.get(f'https://codepen.io/{user}/pens/public?grid_type=list')
     sleep(2)
+    h1 = driver.find_element(By.TAG_NAME, 'h1').text
+    if h1 == '404':
+        raise NoSuchElementException('invalid user')
     return driver.find_element(By.ID, 'react-page')
 
-def fetch_user_pens(page: WebElement) -> list[any]:
+def fetch_user_pens(page: WebElement) -> list[dict]:
     '''
         Get all user pens on a page
     '''
@@ -94,7 +97,7 @@ def fetch_user_pens(page: WebElement) -> list[any]:
         "views": view,
     } for title, update, love, com, view in zip(titles, updates, loves, coms, views)]
 
-def fetch_pens_on_many_pages(driver: Chrome, page: WebElement, page_count: str = '1') -> list[any]:
+def fetch_pens_on_many_pages(driver: Chrome, page: WebElement, page_count: str = '1') -> list[dict]:
     '''
         Go to the next pages for retrieving pens
     '''
@@ -125,9 +128,9 @@ def fetch_pens_on_many_pages(driver: Chrome, page: WebElement, page_count: str =
 
         return [{'url': pen[2], f'Page {pen[1]}': pen[0]} for pen in pens_page]
 
-    return []
+    return [{}]
 
-def save_results(output: str, gather: bool, user: str, pens: list[any]) -> None:
+def save_results(output: str, gather: bool, user: str, pens: list[dict]) -> None:
 
     dir_path = f'{getcwd()}{sep}results'
 
@@ -178,7 +181,7 @@ def save_results(output: str, gather: bool, user: str, pens: list[any]) -> None:
     if extension == 'txt':
 
         randomly_named_dir = f'{dir_path}{sep}txt_output_dir'
-        
+
         if gather:
             # checking if dir already exists
             if path.exists(randomly_named_dir):
