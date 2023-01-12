@@ -134,7 +134,7 @@ def save_results(output: str, user: str, pens: list[any]) -> None:
             "user": user,
             "pens": pens,
         }
-        with open(f'{dir_path}{sep}{output}', 'w', encoding='utf-8') as writer:
+        with open(f'{dir_path}{sep}{user}_{output}', 'w', encoding='utf-8') as writer:
             writer.write(dumps(res, indent=4))
 
         return None
@@ -165,7 +165,7 @@ def save_results(output: str, user: str, pens: list[any]) -> None:
         if extension == 'tsv':
             separator = '\t'
 
-        df.to_csv(f'{dir_path}{sep}{output}_{user}', sep=separator)
+        df.to_csv(f'{dir_path}{sep}{user}_{output}', sep=separator)
         return None
 
     if extension == 'txt':
