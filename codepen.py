@@ -169,7 +169,30 @@ def save_results(output: str, user: str, pens: list[any]) -> None:
         return None
 
     if extension == 'txt':
+        
+        for pen in pens:
+            page = list(pen.keys())[-1].lower().replace(' ', '_')
+            items = pen[list(pen.keys())[-1]]
+            file = open(f'{dir_path}{sep}{user}_{page}_{output}', 'w', encoding='utf-8')
+            file.write(f'{"=" * 20} Pens of {user} {"=" * 20}\n')
+            for item in items:
+                title = item['title']
+                date = item['updated at']
+                love = item['loves']
+                comment = item['comments']
+                view = item['views']
+
+                file.write(f'{"=" * 20} Pen n°{items.index(item) + 1} {"=" * 20}\nTitle : {title}\n\tUpdated at : {date}\n\tNumber of loves approbation : {love}\n\tNumber of comments : {comment}\n\tNumber of views : {view}\n\n')
+            file.close()
+
         return None
+
+    res = {
+        "user": user,
+        "pens": pens,
+    }
+
+    print(dumps(res, indent=4))
 
 if __name__ == '__main__':
     args = parse_args()
