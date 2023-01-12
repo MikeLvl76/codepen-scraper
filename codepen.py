@@ -1,53 +1,63 @@
-from selenium import webdriver
+from selenium.webdriver import Chrome, ChromeOptions
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import argparse
-import json
+from argparse import ArgumentParser, Namespace, ArgumentError, ArgumentTypeError
+from json import dumps
 from time import sleep
+from os import path, getcwd, mkdir, sep
+from re import match
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> Namespace:
     '''
         Parse command prompt arguments
     '''
-    parser = argparse.ArgumentParser(description="Arguments and their features",
+    parser = ArgumentParser(description="Arguments and their features",
                                          usage='%(prog)s [-h] [-usr USER] [-pn PAGE_NUMBER] [-all ALL_PAGES]',
                                          epilog="Use -h or --help to see more about arguments")
     parser.add_argument(
         '-usr', '--user', help='Enter CodePen username', type=str, required=True)
+
     parser.add_argument(
         '-pc', '--page_count', help='Enter the count of desired pages', type=str, default=1, required=False)
+
+    parser.add_argument(
+        '-o', '--output', help='Save result in file (json, csv/tsv or txt)', type=str, required=False)
 
     return parser.parse_args()
 
 
-def check_args(args: argparse.Namespace) -> None:
+def check_args(args: Namespace) -> None:
     '''
         Check if args are correct when used
     '''
     if args.user == '':
-        raise argparse.ArgumentError(message='you must provide username !')
+        raise ArgumentError(message='you must provide username !')
 
     if not args.page_count.isnumeric() and args.page_count != 'all':
-        raise argparse.ArgumentTypeError('positive integer expected or "all" expected !')
+        raise ArgumentTypeError('positive integer expected or "all" expected !')
 
     if args.page_count != 'all' and int(args.page_count) < 1:
-        raise argparse.ArgumentTypeError('positive integer expected !')
+        raise ArgumentTypeError('positive integer expected !')
 
-def init():
-    options = webdriver.ChromeOptions()
+    if match(r'^[\w,\s-]+\.[A-Za-z]{2,4}$', args.output) is None:
+        raise ArgumentError(message='wrong filename or file extension !')
+
+def init() -> Chrome:
+    options = ChromeOptions()
     options.add_experimental_option("excludeSwitches", ["ignore-certificate-errors"])
     options.add_argument('--log-level=1')
     options.add_argument("--headless")
     options.add_argument('--disable-gpu')
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.5359.125 Safari/537.36")
     service = Service(ChromeDriverManager().install())
-    return webdriver.Chrome(service=service, options=options)
+    return Chrome(service=service, options=options)
 
-def fetch_user_page(driver, user: str):
+def fetch_user_page(driver: Chrome, user: str) -> WebElement:
     '''
         Fetch user page main div
     '''
@@ -55,7 +65,7 @@ def fetch_user_page(driver, user: str):
     sleep(2)
     return driver.find_element(By.ID, 'react-page')
 
-def fetch_user_pens(page) -> list[any]:
+def fetch_user_pens(page: WebElement) -> list[any]:
     '''
         Get all user pens on a page
     '''
@@ -78,7 +88,7 @@ def fetch_user_pens(page) -> list[any]:
         "views": view,
     } for title, update, love, com, view in zip(titles, updates, loves, coms, views)]
 
-def fetch_pens_on_many_pages(driver, page, page_count: int or str = 1) -> list[any]:
+def fetch_pens_on_many_pages(driver: Chrome, page: WebElement, page_count: str = '1') -> list[any]:
     '''
         Go to the next pages for retrieving pens
     '''
@@ -109,14 +119,33 @@ def fetch_pens_on_many_pages(driver, page, page_count: int or str = 1) -> list[a
 
     return []
 
-def save_results(**kwargs) -> any:
+def save_results(output: str, user: str, pens: list[any]) -> None:
 
-    res = {
-        "user": kwargs['user'],
-        "pens": kwargs['pens'],
-    }
+    dir_path = f'{getcwd()}{sep}results'
 
-    return json.dumps(res, indent=4)
+    if not path.exists(dir_path):
+        mkdir(dir_path)
+
+    extension = output.split('.')[-1]
+
+    if extension == 'json':
+        res = {
+            "user": user,
+            "pens": pens,
+        }
+        with open(f'{dir_path}{sep}{output}', 'w', encoding='utf-8') as writer:
+            writer.write(dumps(res, indent=4))
+
+        return None
+
+    if extension == 'csv':
+        return None
+
+    if extension == 'tsv':
+        return None
+
+    if extension == 'txt':
+        return None
 
 if __name__ == '__main__':
     args = parse_args()
@@ -126,5 +155,5 @@ if __name__ == '__main__':
     pens = fetch_pens_on_many_pages(driver, page, args.page_count) # get pens on many pages
 
     user_pens = [{'url': pen[2], f'Page {pen[1]}': pen[0]} for pen in pens]
-    print(save_results(user=args.user, pens=user_pens))
+    save_results(output=args.output, user=args.user, pens=user_pens)
     driver.close()
