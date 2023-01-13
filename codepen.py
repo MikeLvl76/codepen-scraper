@@ -8,7 +8,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from argparse import ArgumentParser, Namespace, ArgumentError, ArgumentTypeError
 from json import dumps
-from time import sleep
+from time import sleep, time
 from os import path, getcwd, mkdir, sep
 from re import match
 import pandas as pd
@@ -131,7 +131,11 @@ def fetch_pens_on_many_pages(driver: Chrome, page: WebElement, page_count: str =
     return [{}]
 
 def save_results(output: str, gather: bool, user: str, pens: list[dict]) -> None:
-
+    '''
+        Save the result in a file or just print it.
+        Allowed extensions : .json, .csv, .tsv and .txt
+        Gathering txt files into a dir is possible.
+    '''
     dir_path = f'{getcwd()}{sep}results'
 
     if not path.exists(dir_path):
@@ -229,12 +233,26 @@ def save_results(output: str, gather: bool, user: str, pens: list[dict]) -> None
     print(dumps(res, indent=4))
 
 if __name__ == '__main__':
+
+    print('Reading and checking args...')
     args = parse_args()
     check_args(args)
-    driver = init()
+    print('Args are ok !')
 
+    print('Launching driver...')
+    driver = init()
+    print('Driver ready !')
+
+    print('Fetching data...')
+    t1 = time()
     page = fetch_user_page(driver, args.user) # get main div of user page
     pens = fetch_pens_on_many_pages(driver, page, args.page_count) # get pens on many pages
     save_results(output=args.output, gather=args.gather, user=args.user, pens=pens)
+    t2 = time()
+    print('Data saved !')
 
+    print('Closing driver...')
     driver.close()
+    print('Driver closed.')
+
+    print(f'Execution time : {round(t2 - t1, 4)}s')
