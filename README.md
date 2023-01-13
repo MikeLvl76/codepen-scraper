@@ -35,6 +35,8 @@ python -u codepen.py --user=username --page_count=2 --output=file_output.json
 python3 -u codepen.py --user=username --page_count=2 --output=file_output.json
 ```
 
+**Note** : If you choose to store data in txt files you can gather them into a directory by using `-g` or `--gather` option.
+
 This is just an example, it might not work and serve as example and model.
 
 Don't forget to use `-h` or `--help` to have an explanation for each argument !
