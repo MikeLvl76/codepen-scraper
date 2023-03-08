@@ -1,6 +1,6 @@
 # Forked from [codepen-scraper](https://github.com/eduardoboucas/codepen-scraper.git)
 
-## Introduction
+## About
 
 Python version of web scraper previously made using Node and [cheerio](https://cheerio.js.org/). I used [Selenium](https://www.selenium.dev/) for exctracting elements from a CodePen user such as :
 
@@ -13,13 +13,14 @@ Python version of web scraper previously made using Node and [cheerio](https://c
 
 A list of each pen informations is returned.
 
-## How to run
+## Get started
 
-- You need a username, you can take randomly one username (you have to look for it in CodePen) or take one of your friends.
+Here is all command line arguments :
 
-- You can specify the amount of page to fetch (by default: 1) or choose to fetch them all by typing 'all'.
-
-- You can save the result in a file with these extensions : `.json`, `.csv`, `.tsv` or `.txt`
+- `-usr` or `--user` : provide an username (mandatory)
+- `-pc` or `--page_count` : fetch a number of page or all if 'all' is typed, by default it fetches one page
+- `-o` or `--output` : give a filename with these extensions : `.json`, `.csv`, `.tsv` or `.txt` (mandatory)
+- `-g` or `--gather` : if `txt` is chosen you can put them into a directory
 
 ## Example
 
