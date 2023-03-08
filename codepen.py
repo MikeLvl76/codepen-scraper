@@ -26,7 +26,7 @@ def parse_args() -> Namespace:
         '-usr', '--user', help='Enter CodePen username', type=str, required=True)
 
     parser.add_argument(
-        '-pc', '--page_count', help='Enter the count of desired pages', type=str, default=1, required=False)
+        '-pc', '--page_count', help='Enter the count of desired pages', type=str, default='1', required=False)
 
     parser.add_argument(
         '-o', '--output', help='Save result in file (json, csv/tsv or txt)', type=str, required=False)
