@@ -13,6 +13,13 @@ Python version of web scraper previously made using Node and [cheerio](https://c
 
 A list of each pen informations is returned.
 
+## Requirements
+
+- Python 3.9 or above
+- Selenium 4.1.0
+- pip
+- Web browser (Chrome, Safari or Firefox)
+
 ## Get started
 
 Here is all command line arguments :
